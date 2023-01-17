@@ -71,5 +71,8 @@ func (r *RoleReconciler) reconcileDelete(ctx context.Context, role *rbacv1.Role)
 		return fmt.Errorf("unable to delete policy in vault: %w", err)
 	}
 	// Remove the finalizer
-	return util.RemoveFinalizer(ctx, r.Client, role)
+	if err := util.RemoveFinalizer(ctx, r.Client, role); err != nil {
+		return fmt.Errorf("unable to remove finalizer from role: %w", err)
+	}
+	return nil
 }

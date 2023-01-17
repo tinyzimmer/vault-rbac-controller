@@ -33,11 +33,11 @@ type roleManager struct {
 func (r *roleManager) WriteRole(ctx context.Context, policies []string) error {
 	params, err := r.buildAuthRoleParameters(ctx, r.obj, policies)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build auth role parameters: %w", err)
 	}
 	cli, err := NewClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get vault client: %w", err)
 	}
 	path := path.Join("auth", r.authMount, "role", authRoleName(r.obj))
 	_, err = cli.Logical().WriteWithContext(ctx, path, params)
@@ -48,7 +48,7 @@ func (r *roleManager) DeleteRole(ctx context.Context) error {
 	path := path.Join("auth", r.authMount, "role", authRoleName(r.obj))
 	cli, err := NewClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get vault client: %w", err)
 	}
 	_, err = cli.Logical().DeleteWithContext(ctx, path)
 	return err

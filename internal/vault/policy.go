@@ -53,11 +53,11 @@ func (s *serviceAccountPolicyManager) PolicyName() string {
 func (s *serviceAccountPolicyManager) WritePolicy(ctx context.Context) error {
 	policy, err := s.getPolicy(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get policy: %w", err)
 	}
 	cli, err := NewClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get vault client: %w", err)
 	}
 	return cli.Sys().PutPolicyWithContext(ctx, s.PolicyName(), policy)
 }
@@ -81,7 +81,7 @@ func (s *serviceAccountPolicyManager) getPolicy(ctx context.Context) (string, er
 func (s *serviceAccountPolicyManager) DeletePolicy(ctx context.Context) error {
 	cli, err := NewClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get vault client: %w", err)
 	}
 	return cli.Sys().DeletePolicyWithContext(ctx, s.PolicyName())
 }
@@ -106,11 +106,11 @@ func (r *rolePolicyManager) PolicyName() string {
 func (r *rolePolicyManager) WritePolicy(ctx context.Context) error {
 	policy, err := toJSONPolicyString(r.rules)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal policy: %w", err)
 	}
 	cli, err := NewClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get vault client: %w", err)
 	}
 	return cli.Sys().PutPolicyWithContext(ctx, r.PolicyName(), policy)
 }
@@ -118,7 +118,7 @@ func (r *rolePolicyManager) WritePolicy(ctx context.Context) error {
 func (r *rolePolicyManager) DeletePolicy(ctx context.Context) error {
 	cli, err := NewClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get vault client: %w", err)
 	}
 	return cli.Sys().DeletePolicyWithContext(ctx, r.PolicyName())
 }

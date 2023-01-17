@@ -95,25 +95,31 @@ func (r *RoleBindingReconciler) reconcileDelete(ctx context.Context, rb *rbacv1.
 		if err := manager.DeleteRole(ctx); err != nil {
 			return fmt.Errorf("unable to delete role binding from vault: %w", err)
 		}
-		return util.RemoveFinalizer(ctx, r.Client, rb)
+		if err := util.RemoveFinalizer(ctx, r.Client, rb); err != nil {
+			return fmt.Errorf("unable to remove finalizer from rolebinding: %w", err)
+		}
+		return nil
 	}
 	if err := manager.WriteRole(ctx, policies); err != nil {
 		return fmt.Errorf("unable to update role binding in vault: %w", err)
 	}
-	return util.RemoveFinalizer(ctx, r.Client, rb)
+	if err := util.RemoveFinalizer(ctx, r.Client, rb); err != nil {
+		return fmt.Errorf("unable to remove finalizer from rolebinding: %w", err)
+	}
+	return nil
 }
 
 func (r *RoleBindingReconciler) getRolePolicies(ctx context.Context, current *rbacv1.RoleBinding) ([]string, error) {
 	var rbs rbacv1.RoleBindingList
 	if err := r.List(ctx, &rbs, client.InNamespace(current.GetNamespace())); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to list rolebindings: %w", err)
 	}
 	var policies []string
 	for _, rb := range rbs.Items {
 		if rb.RoleRef.Name == current.RoleRef.Name {
 			var role rbacv1.Role
 			if err := r.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.RoleRef.Name}, &role); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("unable to fetch role: %w", err)
 			}
 			manager := vault.NewPolicyManager(r.Client, &role)
 			if !util.IsIgnoredRole(&role) && manager.HasACLs() {

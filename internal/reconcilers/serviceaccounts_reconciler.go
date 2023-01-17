@@ -89,5 +89,8 @@ func (r *ServiceAccountReconciler) reconcileDelete(ctx context.Context, sa *core
 		return fmt.Errorf("unable to delete auth role in vault: %w", err)
 	}
 	// Remove the finalizer
-	return util.RemoveFinalizer(ctx, r.Client, sa)
+	if err := util.RemoveFinalizer(ctx, r.Client, sa); err != nil {
+		return fmt.Errorf("unable to remove finalizer from serviceaccount: %w", err)
+	}
+	return nil
 }
