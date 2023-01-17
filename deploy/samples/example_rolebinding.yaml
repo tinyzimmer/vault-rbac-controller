@@ -1,0 +1,62 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: example-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: example-policy
+rules:
+- apiGroups:
+  - vault.hashicorp.com
+  resources:
+  - secret/data/example
+  verbs:
+  - read
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: example-binding
+  annotations:
+    vault.hashicorp.com/bind: 'true'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: example-policy
+subjects:
+- kind: ServiceAccount
+  name: example-sa
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-app
+spec:
+  selector:
+    matchLabels:
+      app: example-app
+  template:
+    metadata:
+      labels:
+        app: example-app
+      annotations:
+        vault.hashicorp.com/agent-inject: 'true'
+        vault.hashicorp.com/tls-skip-verify: 'true'
+        vault.hashicorp.com/role: default-example-sa
+        vault.hashicorp.com/agent-inject-secret-example: secret/example
+    spec:
+      serviceAccountName: example-sa
+      containers:
+      - name: example-app
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - sleep infinity
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "100m"

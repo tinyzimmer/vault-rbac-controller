@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: 'true'
+        vault.hashicorp.com/agent-inject-token: 'true'
+        vault.hashicorp.com/agent-requests-cpu: '50m'
+        vault.hashicorp.com/agent-limits-cpu: '100m'
+        vault.hashicorp.com/role: {{ include "chart.vaultAuthRole" . }}
+        {{- if .Values.vault.tlsSkipVerify }}
+        vault.hashicorp.com/tls-skip-verify: 'true'
+        {{- end -}}
+        {{- if .Values.vault.tlsSecretName }}
+        vault.hashicorp.com/tls-secret: {{ .Values.vault.tlsSecretName }}
+        {{- end -}}
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "chart.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+          - --auth-mount={{ .Values.controller.authMount }}
+          {{ if not (empty .Values.controller.namespaces) }}
+          - --namespaces={{ .Values.controller.namespaces | join "," }}
+          {{- end }}
+          {{- if not (empty .Values.controller.excludedNamespaces) }}
+          - --exclude-namespaces={{ .Values.controller.excludedNamespaces | join "," }}
+          {{- end }}
+          {{- if .Values.controller.includeSystemNamespaces }}
+          - --include-system-namespaces
+          {{- end }}
+          {{- if .Values.controller.useFinalizers }}
+          - --use-finalizers
+          {{- end }}
+          {{- with .Values.additionalArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+          - name: VAULT_ADDR
+            value: {{ .Values.vault.address }}
+          {{- if .Values.vault.tlsSkipVerify }}
+          - name: VAULT_SKIP_VERIFY
+            value: "true"
+          {{- end }}
+          {{- with .Values.additionalEnvVars }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
