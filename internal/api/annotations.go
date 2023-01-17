@@ -11,7 +11,7 @@ const (
 	VaultIgnoreAnnotation = "vault.hashicorp.com/ignore"
 	// RoleName instructs the controller to bind the service account or rolebinding to a
 	// Vault role with the given name. If this annotation is not set, the controller will
-	// use the default format of "${namespace}-${serviceaccount_name}".
+	// use the default format of "${namespace}-${resource_name}".
 	VaultRoleNameAnnotation = "vault.hashicorp.com/role-name"
 	// VaultRoleConfigMapAnnotation instructs the controller to use the given configmap for the
 	// parameters of the connection role in Vault. Any annotations on the rolebinding or serviceaccount

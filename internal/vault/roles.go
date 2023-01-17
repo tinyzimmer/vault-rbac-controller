@@ -55,17 +55,21 @@ func (r *roleManager) DeleteRole(ctx context.Context) error {
 }
 
 func (r *roleManager) buildAuthRoleParameters(ctx context.Context, obj client.Object, policies []string) (map[string]interface{}, error) {
-	var saName string
+	var saNames []string
 	switch obj := obj.(type) {
 	case *rbacv1.RoleBinding:
-		saName = obj.Subjects[0].Name
+		for _, sub := range obj.Subjects {
+			if sub.Kind == "ServiceAccount" {
+				saNames = append(saNames, sub.Name)
+			}
+		}
 	case *corev1.ServiceAccount:
-		saName = obj.GetName()
+		saNames = []string{obj.GetName()}
 	default:
 		return nil, errors.New("unknown object type")
 	}
 	params := map[string]interface{}{
-		"bound_service_account_names":      []string{saName},
+		"bound_service_account_names":      saNames,
 		"bound_service_account_namespaces": []string{obj.GetNamespace()},
 		"policies":                         policies,
 	}
@@ -98,9 +102,6 @@ func authRoleName(obj client.Object) string {
 		if role, ok := annotations[api.VaultRoleNameAnnotation]; ok {
 			return role
 		}
-	}
-	if rb, ok := obj.(*rbacv1.RoleBinding); ok {
-		return util.DefaultResourceFormat(obj.GetNamespace(), rb.Subjects[0].Name)
 	}
 	return util.DefaultResourceFormat(obj.GetNamespace(), obj.GetName())
 }
