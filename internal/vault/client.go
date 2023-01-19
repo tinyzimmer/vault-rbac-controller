@@ -1,3 +1,9 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package vault
 
 import (
@@ -6,9 +12,11 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+var NewClient = newClientFromEnv
+
 const defaultVaultTokenPath = "/vault/secrets/token"
 
-func NewClient() (*api.Client, error) {
+func newClientFromEnv() (*api.Client, error) {
 	config := api.DefaultConfig()
 	if err := config.ReadEnvironment(); err != nil {
 		return nil, err

@@ -1,0 +1,49 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: 'true'
+        vault.hashicorp.com/agent-inject-token: 'true'
+        vault.hashicorp.com/agent-requests-cpu: '50m'
+        vault.hashicorp.com/agent-limits-cpu: '100m'
+        vault.hashicorp.com/role: vault-rbac-controller
+    spec:
+      serviceAccountName: controller
+      securityContext:
+        fsGroup: 65534
+      containers:
+        - name: controller
+          image: controller
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

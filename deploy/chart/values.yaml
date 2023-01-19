@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: rbac-controller
+  repository: ghcr.io/tinyzimmer/vault-rbac-controller
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""

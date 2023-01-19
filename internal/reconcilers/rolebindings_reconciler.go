@@ -1,3 +1,9 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package reconcilers
 
 import (
@@ -6,7 +12,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -16,9 +21,11 @@ import (
 
 type RoleBindingReconciler struct {
 	client.Client
-	Scheme        *runtime.Scheme
-	AuthMount     string
-	UseFinalizers bool
+
+	policies      vault.PolicyManager
+	roles         vault.RoleManager
+	authMount     string
+	useFinalizers bool
 }
 
 func (r *RoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -64,13 +71,18 @@ func (r *RoleBindingReconciler) reconcileCreateUpdate(ctx context.Context, rb *r
 		return fmt.Errorf("unable to get role policies: %w", err)
 	}
 
+	params, err := buildAuthRoleParameters(ctx, r.Client, rb, policies)
+	if err != nil {
+		return fmt.Errorf("unable to build auth role parameters: %w", err)
+	}
+
 	// Write the role binding to vault
-	if err := vault.NewRoleManager(r.Client, rb, r.AuthMount).WriteRole(ctx, policies); err != nil {
+	if err := r.roles.WriteRole(ctx, rb, params); err != nil {
 		return fmt.Errorf("unable to write role binding to vault: %w", err)
 	}
 
 	// Add finalizer if not present
-	if r.UseFinalizers && !util.HasFinalizer(rb) {
+	if r.useFinalizers && !util.HasFinalizer(rb) {
 		if err := util.AddFinalizer(ctx, r.Client, rb); err != nil {
 			return fmt.Errorf("unable to update rolebinding with finalizer: %w", err)
 		}
@@ -83,7 +95,6 @@ func (r *RoleBindingReconciler) reconcileDelete(ctx context.Context, rb *rbacv1.
 	if !util.HasFinalizer(rb) {
 		return nil
 	}
-	manager := vault.NewRoleManager(r.Client, rb, r.AuthMount)
 	// Collect all current policies for the role
 	policies, err := r.getRolePolicies(ctx, rb)
 	if err != nil {
@@ -92,7 +103,7 @@ func (r *RoleBindingReconciler) reconcileDelete(ctx context.Context, rb *rbacv1.
 	// If no policies are left, delete the rolebinding
 	if len(policies) == 0 {
 		// Delete the role binding from vault
-		if err := manager.DeleteRole(ctx); err != nil {
+		if err := r.roles.DeleteRole(ctx, rb); err != nil {
 			return fmt.Errorf("unable to delete role binding from vault: %w", err)
 		}
 		if err := util.RemoveFinalizer(ctx, r.Client, rb); err != nil {
@@ -100,7 +111,11 @@ func (r *RoleBindingReconciler) reconcileDelete(ctx context.Context, rb *rbacv1.
 		}
 		return nil
 	}
-	if err := manager.WriteRole(ctx, policies); err != nil {
+	params, err := buildAuthRoleParameters(ctx, r.Client, rb, policies)
+	if err != nil {
+		return fmt.Errorf("unable to build auth role parameters: %w", err)
+	}
+	if err := r.roles.WriteRole(ctx, rb, params); err != nil {
 		return fmt.Errorf("unable to update role binding in vault: %w", err)
 	}
 	if err := util.RemoveFinalizer(ctx, r.Client, rb); err != nil {
@@ -116,14 +131,16 @@ func (r *RoleBindingReconciler) getRolePolicies(ctx context.Context, current *rb
 	}
 	var policies []string
 	for _, rb := range rbs.Items {
+		if rb.DeletionTimestamp != nil || util.IsIgnoredRoleBinding(&rb) {
+			continue
+		}
 		if rb.RoleRef.Name == current.RoleRef.Name {
 			var role rbacv1.Role
 			if err := r.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.RoleRef.Name}, &role); err != nil {
 				return nil, fmt.Errorf("unable to fetch role: %w", err)
 			}
-			manager := vault.NewPolicyManager(r.Client, &role)
-			if !util.IsIgnoredRole(&role) && manager.HasACLs() {
-				policies = append(policies, manager.PolicyName())
+			if !util.IsIgnoredRole(&role) && vault.HasACLs(&role) {
+				policies = append(policies, r.policies.PolicyName(&role))
 			}
 		}
 	}

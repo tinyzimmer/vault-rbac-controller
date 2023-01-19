@@ -1,0 +1,39 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller
+spec:
+  template:
+    metadata:
+      annotations:
+        # Make sure this matches the auth role in Vault
+        vault.hashicorp.com/role: vault-rbac-controller
+        # Add additional injector configurations here
+        ## See the documentation for all the available configurations of the injector:
+        ## https://developer.hashicorp.com/vault/docs/platform/k8s/injector/annotations
+    spec:
+      # Change arguments to the controller
+      containers:
+      - name: controller
+        args: 
+        ## Specify a custom mount for the Kubernetes auth method
+        - --auth-mount=kubernetes
+        ## Only watch the given namespaces
+        # - --namespace=default,example
+        ## Exclude the given namespaces
+        # - --exclude-namespaces=default,example
+        ## Include system namespaces (default behavior is to ignore regardless of above)
+        # - --include-system-namespaces
+        # Place finalizers on resources to attempt Vault cleanup on deletion
+        # Comment this out if you don't want the controller to attempt to cleanup vault policies
+        - --use-finalizers
+        env:
+        # Change this to where Vault is deployed
+        - name: VAULT_ADDR
+          value: http://vault.vault.svc.cluster.local:8200
+        # Remove this on a proper installation with TLS
+        - name: VAULT_SKIP_VERIFY
+          value: "true"
+        # Place additional Vault client configurations here
+        ## https://developer.hashicorp.com/vault/docs/commands#environment-variables

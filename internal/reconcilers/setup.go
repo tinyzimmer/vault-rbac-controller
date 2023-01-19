@@ -1,3 +1,9 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 package reconcilers
 
 import (
@@ -11,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/tinyzimmer/vault-rbac-controller/internal/util"
+	"github.com/tinyzimmer/vault-rbac-controller/internal/vault"
 )
 
 // Options are the options for configuring the reconcilers.
@@ -24,28 +31,38 @@ type Options struct {
 
 // SetupWithManager sets up all reconcilers with the given manager.
 func SetupWithManager(mgr ctrl.Manager, opts *Options) error {
+	policies := vault.NewPolicyManager()
+	roles := vault.NewRoleManager(opts.AuthMount)
 	roleReconciler := &RoleReconciler{
 		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		UseFinalizers: opts.UseFinalizers,
+		policies:      policies,
+		useFinalizers: opts.UseFinalizers,
 	}
 	rbReconciler := &RoleBindingReconciler{
 		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		AuthMount:     opts.AuthMount,
-		UseFinalizers: opts.UseFinalizers,
+		policies:      policies,
+		roles:         roles,
+		authMount:     opts.AuthMount,
+		useFinalizers: opts.UseFinalizers,
 	}
 	saReconciler := &ServiceAccountReconciler{
 		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		AuthMount:     opts.AuthMount,
-		UseFinalizers: opts.UseFinalizers,
+		policies:      policies,
+		roles:         roles,
+		authMount:     opts.AuthMount,
+		useFinalizers: opts.UseFinalizers,
 	}
 	eventFilter := checkNamespacesPredicate(opts.Namespaces, opts.ExcludeNamespaces, opts.IncludeSystemNamespaces)
 	for reconciler, builder := range map[reconcile.Reconciler]*builder.Builder{
-		roleReconciler: ctrl.NewControllerManagedBy(mgr).For(&rbacv1.Role{}).WithEventFilter(eventFilter),
-		rbReconciler:   ctrl.NewControllerManagedBy(mgr).For(&rbacv1.RoleBinding{}).WithEventFilter(eventFilter),
-		saReconciler:   ctrl.NewControllerManagedBy(mgr).For(&corev1.ServiceAccount{}).WithEventFilter(eventFilter),
+		roleReconciler: ctrl.NewControllerManagedBy(mgr).
+			For(&rbacv1.Role{}).
+			WithEventFilter(eventFilter),
+		rbReconciler: ctrl.NewControllerManagedBy(mgr).
+			For(&rbacv1.RoleBinding{}).
+			WithEventFilter(eventFilter),
+		saReconciler: ctrl.NewControllerManagedBy(mgr).
+			For(&corev1.ServiceAccount{}).
+			WithEventFilter(eventFilter),
 	} {
 		if err := builder.Complete(reconciler); err != nil {
 			return err

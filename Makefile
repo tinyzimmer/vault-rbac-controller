@@ -1,9 +1,21 @@
-CLUSTER_NAME ?= rbac-controller
-KUBECONTEXT  ?= k3d-$(CLUSTER_NAME)
-
-IMG ?= rbac-controller:latest
+IMG ?= ghcr.io/tinyzimmer/vault-rbac-controller:latest
 build:
 	docker build -t $(IMG) .
+
+test: setup-envtest
+	$(shell setup-envtest use -p env) ; go test -v ./...
+
+GOLANGCI_LINT_VERSION = v1.50.1
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	golangci-lint run -v
+
+setup-envtest:
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	setup-envtest use
+
+CLUSTER_NAME ?= vault-rbac-controller
+KUBECONTEXT  ?= k3d-$(CLUSTER_NAME)
 
 test-cluster: create-cluster install-vault init-vault configure-vault
 
@@ -26,7 +38,7 @@ install-vault:
 		--timeout=300s \
 		vault-0
 
-SVCACCT ?= controller
+SVCACCT ?= vault-rbac-controller
 VAULT   := $(KUBECTL) exec -it --namespace vault vault-0 -- vault
 
 init-vault:
@@ -54,16 +66,12 @@ load-image:
 
 RELEASE_NAME ?= rbac-controller
 deploy-controller: load-image
-	$(HELM) upgrade --install \
-		--set image.pullPolicy=Never \
-		--set serviceAccount.name=$(SVCACCT) \
-		--set vault.tlsSkipVerify=true \
-		--set controller.excludedNamespaces=vault \
-		--set controller.useFinalizers=true \
-		$(RELEASE_NAME) deploy/chart
+	kubectl kustomize deploy/kustomize \
+		| $(KUBECTL) apply -f -
 
 undeploy-controller:
-	$(HELM) uninstall $(RELEASE_NAME)
+	kubectl kustomize deploy/kustomize \
+		| $(KUBECTL) delete -f -
 
 destroy:
 	k3d cluster delete $(CLUSTER_NAME)
