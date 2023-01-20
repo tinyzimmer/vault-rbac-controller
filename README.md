@@ -65,13 +65,14 @@ kubectl exec -it --namespace vault vault-0 -- vault write auth/kubernetes/role/v
 ### Installing the Controller
 
 You can either use the `helm` chart or the `kustomizization` to deploy the controller.
-The chart is not published anywhere yet, so you'll have to install from the repository.
+Both can be found in the `deploy/` directory.
+The chart is not published anywhere yet, so you'll have to clone the repository first to use it.
 The defaults in the `kustomization` assume the insecure settings used in this quickstart.
 To install using `kustomize`:
 
 ```bash
 kubectl kustomize https://github.com/tinyzimmer/vault-rbac-controller/deploy/kustomize \
-    kubectl apply -f -
+    | kubectl apply -f -
 ```
 
 You can now experiment with the controller.
