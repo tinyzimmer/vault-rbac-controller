@@ -13,6 +13,7 @@ dist:
 		-ldflags "-s -w" \
 		-osarch="linux/amd64 linux/arm64" \
 		-output="dist/vault-rbac-controller_{{.OS}}_{{.Arch}}" .
+	upx --best --lzma dist/*
 
 test: setup-envtest
 	go install github.com/onsi/ginkgo/v2/ginkgo@latest
