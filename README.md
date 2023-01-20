@@ -64,7 +64,6 @@ kubectl exec -it --namespace vault vault-0 -- vault write auth/kubernetes/role/v
 
 ### Installing the Controller
 
-
 _To complete after repo setup_
 
 The manifests in [deploy/samples](deploy/samples) contain various ways to use the controller.

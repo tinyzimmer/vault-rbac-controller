@@ -25,12 +25,10 @@ func newClientFromEnv() (*api.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := os.Stat(defaultVaultTokenPath); err == nil {
-		token, err := os.ReadFile(defaultVaultTokenPath)
-		if err != nil {
-			return nil, err
-		}
-		client.SetToken(string(token))
+	token, err := os.ReadFile(defaultVaultTokenPath)
+	if err != nil {
+		return nil, err
 	}
+	client.SetToken(string(token))
 	return client, nil
 }

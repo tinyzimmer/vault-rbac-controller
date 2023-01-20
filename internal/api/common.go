@@ -11,4 +11,8 @@ const (
 	ResourceFinalizer = "vault-rbac-controller/finalizer"
 	// VaultPolicyKey is the key in configmaps that contains the Vault policy.
 	VaultPolicyKey = "policy.hcl"
+
+	EventReasonIgnored = "Ignored"
+	EventReasonSynced  = "Synced"
+	EventReasonError   = "Error"
 )

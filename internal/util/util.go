@@ -7,7 +7,6 @@
 package util
 
 import (
-	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -22,39 +21,11 @@ func DefaultResourceFormat(namespace, name string) string {
 }
 
 func IsIgnoredServiceAccount(svcacct *corev1.ServiceAccount) bool {
-	return HasAnnotation(svcacct, api.VaultIgnoreAnnotation)
-}
-
-func IsIgnoredRole(role *rbacv1.Role) bool {
-	return HasAnnotation(role, api.VaultIgnoreAnnotation)
+	return !HasAnnotation(svcacct, api.VaultRoleBindAnnotation)
 }
 
 func IsIgnoredRoleBinding(rolebinding *rbacv1.RoleBinding) bool {
-	return HasAnnotation(rolebinding, api.VaultIgnoreAnnotation) ||
-		!HasAnnotation(rolebinding, api.VaultRoleBindAnnotation)
-}
-
-func AddFinalizer(ctx context.Context, cli client.Client, obj client.Object) error {
-	obj.SetFinalizers(append(obj.GetFinalizers(), api.ResourceFinalizer))
-	return cli.Update(ctx, obj)
-}
-
-func RemoveFinalizer(ctx context.Context, cli client.Client, obj client.Object) error {
-	obj.SetFinalizers(RemoveString(obj.GetFinalizers(), api.ResourceFinalizer))
-	return cli.Update(ctx, obj)
-}
-
-func HasFinalizer(obj client.Object) bool {
-	return ContainsString(obj.GetFinalizers(), api.ResourceFinalizer)
-}
-
-func ContainsString(slice []string, toCheck string) bool {
-	for _, s := range slice {
-		if s == toCheck {
-			return true
-		}
-	}
-	return false
+	return !HasAnnotation(rolebinding, api.VaultRoleBindAnnotation)
 }
 
 func HasAnnotation(obj client.Object, toCheck string) bool {
@@ -63,13 +34,4 @@ func HasAnnotation(obj client.Object, toCheck string) bool {
 		return ok
 	}
 	return false
-}
-
-func RemoveString(slice []string, toRemove string) []string {
-	for i, s := range slice {
-		if s == toRemove {
-			return append(slice[:i], slice[i+1:]...)
-		}
-	}
-	return slice
 }

@@ -1,9 +1,19 @@
+SHELL := /bin/bash
+
 IMG ?= ghcr.io/tinyzimmer/vault-rbac-controller:latest
 build:
 	docker build -t $(IMG) .
 
 test: setup-envtest
-	$(shell setup-envtest use -p env) ; go test -v ./...
+	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+	$(shell setup-envtest use -p env) ; \
+		ginkgo run -r -v \
+			--race \
+			--output-dir ./ \
+			--junit-report junit_report.xml \
+			--cover --covermode atomic \
+			--coverprofile cover.out
+	go tool cover -func cover.out
 
 GOLANGCI_LINT_VERSION = v1.50.1
 lint:
@@ -14,6 +24,8 @@ setup-envtest:
 	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	setup-envtest use
 
+## Local development helpers
+
 CLUSTER_NAME ?= vault-rbac-controller
 KUBECONTEXT  ?= k3d-$(CLUSTER_NAME)
 
@@ -21,6 +33,9 @@ test-cluster: create-cluster install-vault init-vault configure-vault
 
 create-cluster:
 	k3d cluster create $(CLUSTER_NAME)
+
+destroy-cluster:
+	k3d cluster delete $(CLUSTER_NAME)
 
 HELM    := helm --kube-context $(KUBECONTEXT)
 KUBECTL := kubectl --context $(KUBECONTEXT)
@@ -72,6 +87,3 @@ deploy-controller: load-image
 undeploy-controller:
 	kubectl kustomize deploy/kustomize \
 		| $(KUBECTL) delete -f -
-
-destroy:
-	k3d cluster delete $(CLUSTER_NAME)

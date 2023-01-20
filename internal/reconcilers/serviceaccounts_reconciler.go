@@ -12,8 +12,10 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/tinyzimmer/vault-rbac-controller/internal/api"
 	"github.com/tinyzimmer/vault-rbac-controller/internal/util"
@@ -23,9 +25,9 @@ import (
 type ServiceAccountReconciler struct {
 	client.Client
 
+	recorder      record.EventRecorder
 	policies      vault.PolicyManager
 	roles         vault.RoleManager
-	authMount     string
 	useFinalizers bool
 }
 
@@ -44,27 +46,33 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if util.IsIgnoredServiceAccount(&sa) {
 		log.Info("serviceaccount is ignored, skipping")
+		r.recorder.Event(&sa, corev1.EventTypeNormal, api.EventReasonIgnored, "ServiceAccount is ignored by the controller")
+		return ctrl.Result{}, nil
+	}
+
+	if !vault.HasACLs(&sa) {
+		log.Info("no vault rules found in serviceaccount, skipping")
+		r.recorder.Event(&sa, corev1.EventTypeNormal, api.EventReasonIgnored, "ServiceAccount does not define any Vault ACLs")
 		return ctrl.Result{}, nil
 	}
 
 	if sa.GetDeletionTimestamp() != nil {
-		return ctrl.Result{}, r.reconcileDelete(ctx, &sa)
+		if err := r.reconcileDelete(ctx, &sa); err != nil {
+			r.recorder.Event(&sa, corev1.EventTypeWarning, api.EventReasonError, err.Error())
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, r.reconcileCreateUpdate(ctx, &sa)
+	if err := r.reconcileCreateUpdate(ctx, &sa); err != nil {
+		r.recorder.Event(&sa, corev1.EventTypeWarning, api.EventReasonError, err.Error())
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *ServiceAccountReconciler) reconcileCreateUpdate(ctx context.Context, sa *corev1.ServiceAccount) error {
-	// Make sure we have the bind annotation
-	if !util.HasAnnotation(sa, api.VaultRoleBindAnnotation) {
-		ctrl.LoggerFrom(ctx).Info("service account is not bound or managed by a rolebinding, skipping")
-		return nil
-	}
 	// Create the policy in vault
-	if !vault.HasACLs(sa) {
-		ctrl.LoggerFrom(ctx).Info("no vault rules found in serviceaccount, skipping")
-		return nil
-	}
 	policy, err := r.getServiceAccountPolicy(ctx, sa)
 	if err != nil {
 		return fmt.Errorf("unable to get serviceaccount policy: %w", err)
@@ -81,16 +89,17 @@ func (r *ServiceAccountReconciler) reconcileCreateUpdate(ctx context.Context, sa
 		return fmt.Errorf("unable to put auth role in vault: %w", err)
 	}
 	// Add finalizer if not present
-	if r.useFinalizers && !util.HasFinalizer(sa) {
-		if err := util.AddFinalizer(ctx, r.Client, sa); err != nil {
+	if r.useFinalizers && !controllerutil.ContainsFinalizer(sa, api.ResourceFinalizer) {
+		if err := addFinalizer(ctx, r.Client, sa); err != nil {
 			return fmt.Errorf("unable to update serviceaccount with finalizer: %w", err)
 		}
 	}
+	r.recorder.Event(sa, corev1.EventTypeNormal, api.EventReasonSynced, "ServiceAccount synced to Vault")
 	return nil
 }
 
 func (r *ServiceAccountReconciler) reconcileDelete(ctx context.Context, sa *corev1.ServiceAccount) error {
-	if !util.HasFinalizer(sa) {
+	if !controllerutil.ContainsFinalizer(sa, api.ResourceFinalizer) {
 		// Nothing to do
 		return nil
 	}
@@ -103,7 +112,7 @@ func (r *ServiceAccountReconciler) reconcileDelete(ctx context.Context, sa *core
 		return fmt.Errorf("unable to delete auth role in vault: %w", err)
 	}
 	// Remove the finalizer
-	if err := util.RemoveFinalizer(ctx, r.Client, sa); err != nil {
+	if err := removeFinalizer(ctx, r.Client, sa); err != nil {
 		return fmt.Errorf("unable to remove finalizer from serviceaccount: %w", err)
 	}
 	return nil

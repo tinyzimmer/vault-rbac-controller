@@ -13,8 +13,6 @@ const (
 	// VaultRoleBindAnnotation instructs the controller to emulate the rolebinding/serviceaccount
 	// in vault.
 	VaultRoleBindAnnotation = "vault.hashicorp.com/bind"
-	// VaultIgnoreAnnotation instructs the controller to ignore the resource.
-	VaultIgnoreAnnotation = "vault.hashicorp.com/ignore"
 	// RoleName instructs the controller to bind the service account or rolebinding to a
 	// Vault role with the given name. If this annotation is not set, the controller will
 	// use the default format of "${namespace}-${resource_name}".

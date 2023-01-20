@@ -12,9 +12,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/tinyzimmer/vault-rbac-controller/internal/api"
 	"github.com/tinyzimmer/vault-rbac-controller/internal/util"
 	"github.com/tinyzimmer/vault-rbac-controller/internal/vault"
 )
@@ -22,9 +25,9 @@ import (
 type RoleBindingReconciler struct {
 	client.Client
 
+	recorder      record.EventRecorder
 	policies      vault.PolicyManager
 	roles         vault.RoleManager
-	authMount     string
 	useFinalizers bool
 }
 
@@ -43,35 +46,39 @@ func (r *RoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if util.IsIgnoredRoleBinding(&rb) {
 		log.Info("rolebinding is ignored, skipping")
+		r.recorder.Event(&rb, corev1.EventTypeNormal, api.EventReasonIgnored, "RoleBinding is ignored by the controller")
 		return ctrl.Result{}, nil
 	}
 
 	if rb.GetDeletionTimestamp() != nil {
-		return ctrl.Result{}, r.reconcileDelete(ctx, &rb)
+		if err := r.reconcileDelete(ctx, &rb); err != nil {
+			r.recorder.Event(&rb, corev1.EventTypeWarning, api.EventReasonError, err.Error())
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, r.reconcileCreateUpdate(ctx, &rb)
+	if err := r.reconcileCreateUpdate(ctx, &rb); err != nil {
+		r.recorder.Event(&rb, corev1.EventTypeWarning, api.EventReasonError, err.Error())
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *RoleBindingReconciler) reconcileCreateUpdate(ctx context.Context, rb *rbacv1.RoleBinding) error {
-	// Retrieve the service account
-	var sa corev1.ServiceAccount
-	if err := r.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Subjects[0].Name}, &sa); err != nil {
-		return fmt.Errorf("unable to fetch service account: %w", err)
+	// Retrieve the role to determine the policy name
+	var role rbacv1.Role
+	if err := r.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.RoleRef.Name}, &role); err != nil {
+		return fmt.Errorf("unable to fetch role: %w", err)
 	}
 
-	if util.IsIgnoredServiceAccount(&sa) {
-		ctrl.LoggerFrom(ctx).Info("service account is ignored, skipping")
+	if !vault.HasACLs(&role) {
+		ctrl.LoggerFrom(ctx).Info("rolebinding's role has no ACLs, skipping")
+		r.recorder.Event(rb, corev1.EventTypeNormal, api.EventReasonIgnored, "RoleBinding's Role does not contain Vault ACLs")
 		return nil
 	}
 
-	// Collect all current policies for the role
-	policies, err := r.getRolePolicies(ctx, rb)
-	if err != nil {
-		return fmt.Errorf("unable to get role policies: %w", err)
-	}
-
-	params, err := buildAuthRoleParameters(ctx, r.Client, rb, policies)
+	params, err := buildAuthRoleParameters(ctx, r.Client, rb, []string{r.policies.PolicyName(&role)})
 	if err != nil {
 		return fmt.Errorf("unable to build auth role parameters: %w", err)
 	}
@@ -82,67 +89,25 @@ func (r *RoleBindingReconciler) reconcileCreateUpdate(ctx context.Context, rb *r
 	}
 
 	// Add finalizer if not present
-	if r.useFinalizers && !util.HasFinalizer(rb) {
-		if err := util.AddFinalizer(ctx, r.Client, rb); err != nil {
+	if r.useFinalizers && !controllerutil.ContainsFinalizer(rb, api.ResourceFinalizer) {
+		if err := addFinalizer(ctx, r.Client, rb); err != nil {
 			return fmt.Errorf("unable to update rolebinding with finalizer: %w", err)
 		}
 	}
-
+	r.recorder.Event(rb, corev1.EventTypeNormal, api.EventReasonSynced, "RoleBinding synced to Vault")
 	return nil
 }
 
 func (r *RoleBindingReconciler) reconcileDelete(ctx context.Context, rb *rbacv1.RoleBinding) error {
-	if !util.HasFinalizer(rb) {
+	if !controllerutil.ContainsFinalizer(rb, api.ResourceFinalizer) {
 		return nil
 	}
-	// Collect all current policies for the role
-	policies, err := r.getRolePolicies(ctx, rb)
-	if err != nil {
-		return fmt.Errorf("unable to get role policies: %w", err)
+	// Delete the role binding from vault
+	if err := r.roles.DeleteRole(ctx, rb); err != nil {
+		return fmt.Errorf("unable to delete role binding from vault: %w", err)
 	}
-	// If no policies are left, delete the rolebinding
-	if len(policies) == 0 {
-		// Delete the role binding from vault
-		if err := r.roles.DeleteRole(ctx, rb); err != nil {
-			return fmt.Errorf("unable to delete role binding from vault: %w", err)
-		}
-		if err := util.RemoveFinalizer(ctx, r.Client, rb); err != nil {
-			return fmt.Errorf("unable to remove finalizer from rolebinding: %w", err)
-		}
-		return nil
-	}
-	params, err := buildAuthRoleParameters(ctx, r.Client, rb, policies)
-	if err != nil {
-		return fmt.Errorf("unable to build auth role parameters: %w", err)
-	}
-	if err := r.roles.WriteRole(ctx, rb, params); err != nil {
-		return fmt.Errorf("unable to update role binding in vault: %w", err)
-	}
-	if err := util.RemoveFinalizer(ctx, r.Client, rb); err != nil {
+	if err := removeFinalizer(ctx, r.Client, rb); err != nil {
 		return fmt.Errorf("unable to remove finalizer from rolebinding: %w", err)
 	}
 	return nil
-}
-
-func (r *RoleBindingReconciler) getRolePolicies(ctx context.Context, current *rbacv1.RoleBinding) ([]string, error) {
-	var rbs rbacv1.RoleBindingList
-	if err := r.List(ctx, &rbs, client.InNamespace(current.GetNamespace())); err != nil {
-		return nil, fmt.Errorf("unable to list rolebindings: %w", err)
-	}
-	var policies []string
-	for _, rb := range rbs.Items {
-		if rb.DeletionTimestamp != nil || util.IsIgnoredRoleBinding(&rb) {
-			continue
-		}
-		if rb.RoleRef.Name == current.RoleRef.Name {
-			var role rbacv1.Role
-			if err := r.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.RoleRef.Name}, &role); err != nil {
-				return nil, fmt.Errorf("unable to fetch role: %w", err)
-			}
-			if !util.IsIgnoredRole(&role) && vault.HasACLs(&role) {
-				policies = append(policies, r.policies.PolicyName(&role))
-			}
-		}
-	}
-	return policies, nil
 }

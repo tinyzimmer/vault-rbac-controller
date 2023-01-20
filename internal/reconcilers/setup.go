@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/util"
 	"github.com/tinyzimmer/vault-rbac-controller/internal/vault"
 )
 
@@ -33,23 +32,25 @@ type Options struct {
 func SetupWithManager(mgr ctrl.Manager, opts *Options) error {
 	policies := vault.NewPolicyManager()
 	roles := vault.NewRoleManager(opts.AuthMount)
+	recorder := mgr.GetEventRecorderFor("vault-rbac-controller")
 	roleReconciler := &RoleReconciler{
 		Client:        mgr.GetClient(),
+		recorder:      recorder,
 		policies:      policies,
 		useFinalizers: opts.UseFinalizers,
 	}
 	rbReconciler := &RoleBindingReconciler{
 		Client:        mgr.GetClient(),
+		recorder:      recorder,
 		policies:      policies,
 		roles:         roles,
-		authMount:     opts.AuthMount,
 		useFinalizers: opts.UseFinalizers,
 	}
 	saReconciler := &ServiceAccountReconciler{
 		Client:        mgr.GetClient(),
+		recorder:      recorder,
 		policies:      policies,
 		roles:         roles,
-		authMount:     opts.AuthMount,
 		useFinalizers: opts.UseFinalizers,
 	}
 	eventFilter := checkNamespacesPredicate(opts.Namespaces, opts.ExcludeNamespaces, opts.IncludeSystemNamespaces)
@@ -93,10 +94,19 @@ func checkObject(obj client.Object, namespaces []string, excludeNamespaces []str
 	if !includeKubeSystem && isSystemNamespace(ns) {
 		return false
 	}
-	return (len(namespaces) == 0 || util.ContainsString(namespaces, ns)) &&
-		!util.ContainsString(excludeNamespaces, ns)
+	return (len(namespaces) == 0 || containsString(namespaces, ns)) &&
+		!containsString(excludeNamespaces, ns)
 }
 
 func isSystemNamespace(ns string) bool {
 	return ns == "kube-system" || ns == "kube-public" || ns == "kube-node-lease"
+}
+
+func containsString(ss []string, s string) bool {
+	for _, v := range ss {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
