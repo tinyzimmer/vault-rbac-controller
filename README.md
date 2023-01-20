@@ -67,7 +67,8 @@ kubectl exec -it --namespace vault vault-0 -- vault write auth/kubernetes/role/v
 You can either use the `helm` chart or the `kustomizization` to deploy the controller.
 Both can be found in the `deploy/` directory.
 The chart is not published anywhere yet, so you'll have to clone the repository first to use it.
-The defaults in the `kustomization` assume the insecure settings used in this quickstart.
+The defaults in the `kustomization` assume the names used in this quickstart.
+Edit the `config_patch.yaml` to suit your needs.
 To install using `kustomize`:
 
 ```bash

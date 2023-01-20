@@ -28,3 +28,11 @@ spec:
         # - --exclude-namespaces=default,example
         ## Include system namespaces (default behavior is to ignore regardless of above)
         # - --include-system-namespaces
+        ## Set your desired resource limits
+        # resources:
+        #   requests:
+        #     cpu: 100m
+        #     memory: 64Mi
+        #   limits:
+        #     cpu: 200m
+        #     memory: 128Mi

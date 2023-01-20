@@ -10,8 +10,6 @@ spec:
       annotations:
         vault.hashicorp.com/agent-inject: 'true'
         vault.hashicorp.com/agent-inject-token: 'true'
-        vault.hashicorp.com/agent-requests-cpu: '50m'
-        vault.hashicorp.com/agent-limits-cpu: '100m'
         vault.hashicorp.com/agent-cache-enable: "true"
         vault.hashicorp.com/role: vault-rbac-controller
     spec:
@@ -44,10 +42,3 @@ spec:
             httpGet:
               path: /readyz
               port: http
-          resources:
-            requests:
-              cpu: 100m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
