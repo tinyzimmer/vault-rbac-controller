@@ -53,8 +53,31 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2
 
-    - name: Setup QEMU
-      uses: docker/setup-qemu-action@v2
+    - name: Setup Go 1.19
+      uses: actions/setup-go@v2
+      with:
+        go-version: '^1.19'
+
+    - name: Cache Go Modules
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go
+
+    - name: Download Go Modules
+      shell: bash
+      run: go mod download -x
+
+    # - name: Setup QEMU
+    #   uses: docker/setup-qemu-action@v2
+
+    - name: Build Release Binaries
+      shell: bash
+      run: make dist
 
     - name: Setup Buildx
       uses: docker/setup-buildx-action@v2
@@ -64,6 +87,5 @@ jobs:
        with:
          push: true
          tags: ghcr.io/tinyzimmer/vault-rbac-controller:latest
-         cache-to: type=gha
-         cache-from: type=gha
-         platforms: linux/amd64,linux/arm64,linux/arm/v7
+         platforms: linux/amd64,linux/arm64
+         github-token: ${{ secrets.GITHUB_TOKEN }}

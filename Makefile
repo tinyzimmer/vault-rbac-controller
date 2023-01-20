@@ -1,8 +1,18 @@
 SHELL := /bin/bash
 
 IMG ?= ghcr.io/tinyzimmer/vault-rbac-controller:latest
-build:
-	docker build -t $(IMG) .
+build: dist
+	docker build --platform linux/amd64 -t $(IMG) .
+
+.PHONY: dist
+dist:
+	go install github.com/mitchellh/gox@latest
+	mkdir -p dist/
+	CGO_ENABLED=0 gox \
+		-tags netgo \
+		-ldflags "-s -w" \
+		-osarch="linux/amd64 linux/arm64" \
+		-output="dist/vault-rbac-controller_{{.OS}}_{{.Arch}}" .
 
 test: setup-envtest
 	go install github.com/onsi/ginkgo/v2/ginkgo@latest
