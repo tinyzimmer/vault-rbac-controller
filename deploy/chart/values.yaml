@@ -52,7 +52,6 @@ controller:
   useFinalizers: false
 
 vault:
-  address: "http://vault.vault.svc.cluster.local:8200"
   authRole: ""
   tlsSkipVerify: false
 

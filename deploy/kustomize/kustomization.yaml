@@ -11,4 +11,4 @@ patchesStrategicMerge:
 images:
 - name: controller
   newName: ghcr.io/tinyzimmer/vault-rbac-controller
-  newTag: latest
+  newTag: v0.0.1

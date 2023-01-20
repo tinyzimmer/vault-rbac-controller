@@ -12,6 +12,7 @@ spec:
         vault.hashicorp.com/agent-inject-token: 'true'
         vault.hashicorp.com/agent-requests-cpu: '50m'
         vault.hashicorp.com/agent-limits-cpu: '100m'
+        vault.hashicorp.com/agent-cache-enable: "true"
         vault.hashicorp.com/role: vault-rbac-controller
     spec:
       serviceAccountName: controller
@@ -28,6 +29,9 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 65534
+          env:
+          - name: VAULT_ADDR
+            value: http://127.0.0.1:8200
           ports:
             - name: http
               containerPort: 8081

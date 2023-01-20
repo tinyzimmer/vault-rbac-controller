@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 IMG ?= ghcr.io/tinyzimmer/vault-rbac-controller:latest
 build: dist
-	docker build --platform linux/amd64 -t $(IMG) .
+	docker build --build-arg TARGETARCH=amd64 -t $(IMG) .
 
 .PHONY: dist
 dist:

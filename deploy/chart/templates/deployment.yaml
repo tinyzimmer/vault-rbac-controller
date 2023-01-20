@@ -14,8 +14,7 @@ spec:
       annotations:
         vault.hashicorp.com/agent-inject: 'true'
         vault.hashicorp.com/agent-inject-token: 'true'
-        vault.hashicorp.com/agent-requests-cpu: '50m'
-        vault.hashicorp.com/agent-limits-cpu: '100m'
+        vault.hashicorp.com/agent-cache-enable: "true"
         vault.hashicorp.com/role: {{ include "chart.vaultAuthRole" . }}
         {{- if .Values.vault.tlsSkipVerify }}
         vault.hashicorp.com/tls-skip-verify: 'true'
@@ -61,11 +60,7 @@ spec:
           {{- end }}
           env:
           - name: VAULT_ADDR
-            value: {{ .Values.vault.address }}
-          {{- if .Values.vault.tlsSkipVerify }}
-          - name: VAULT_SKIP_VERIFY
-            value: "true"
-          {{- end }}
+            value: http://127.0.0.1:8200
           {{- with .Values.additionalEnvVars }}
             {{- toYaml . | nindent 12 }}
           {{- end }}

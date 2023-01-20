@@ -17,11 +17,7 @@ var NewClient = newClientFromEnv
 const defaultVaultTokenPath = "/vault/secrets/token"
 
 func newClientFromEnv() (*api.Client, error) {
-	config := api.DefaultConfig()
-	if err := config.ReadEnvironment(); err != nil {
-		return nil, err
-	}
-	client, err := api.NewClient(config)
+	client, err := api.NewClient(api.DefaultConfig())
 	if err != nil {
 		return nil, err
 	}
