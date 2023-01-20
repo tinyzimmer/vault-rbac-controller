@@ -18,7 +18,7 @@ test: setup-envtest
 GOLANGCI_LINT_VERSION = v1.50.1
 lint:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	golangci-lint run -v
+	golangci-lint run -v --timeout 300s
 
 setup-envtest:
 	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
