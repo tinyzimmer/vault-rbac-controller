@@ -33,10 +33,10 @@ Next we need to initialize the vault, enable a secret engine, and enable the Kub
 
 ```bash
 # Initialize and unseal
-kubectl exec -it --namespace vault vault-0 -- vault operator init -key-shares=1 -key-threshold=1 > keys.txt
-kubectl exec -it --namespace vault vault-0 -- vault operator unseal "$(grep 'Unseal Key 1:' keys.txt | awk '{print $4}')"
+kubectl exec -it --namespace vault vault-0 -- vault operator init -key-shares=1 -key-threshold=1 -format=json > keys.json
+kubectl exec -it --namespace vault vault-0 -- vault operator unseal "$(jq -r ".unseal_keys_b64[]" keys.json)"
 # Login on the pod
-kubectl exec -it --namespace vault vault-0 -- vault login $(grep 'Initial Root Token:' keys.txt | awk '{print $4}')
+kubectl exec -it --namespace vault vault-0 -- vault login $(jq -r ".root_token" keys.json)
 # Enable a secret engine
 kubectl exec -it --namespace vault vault-0 -- vault secrets enable -path=secret kv-v2
 # Enable the kubernetes auth method
@@ -67,8 +67,8 @@ kubectl exec -it --namespace vault vault-0 -- vault write auth/kubernetes/role/v
 You can either use the `helm` chart or the `kustomizization` to deploy the controller.
 Both can be found in the `deploy/` directory.
 The chart is not published anywhere yet, so you'll have to clone the repository first to use it.
-The defaults in the `kustomization` assume the names used in this quickstart.
-Edit the `config_patch.yaml` to suit your needs.
+The defaults in the `kustomization` assume the names and insecure settings used in this quickstart.
+Otherwise, edit the `config_patch.yaml` to suit your needs or create a wrapping kustomization.
 To install using `kustomize`:
 
 ```bash
@@ -79,8 +79,52 @@ kubectl kustomize https://github.com/tinyzimmer/vault-rbac-controller/deploy/kus
 You can now experiment with the controller.
 
 The manifests in [deploy/samples](deploy/samples) contain various ways to use the controller.
-They all depend on a `secret/example`. We can generate one with:
+They all depend on a `secret/example`. You can generate one with:
 
 ```bash
 kubectl exec -it --namespace vault vault-0 -- vault kv put secret/example api_key=$(uuidgen)
+```
+
+## Usage
+
+Vault ACLs for a ServiceAccount can be configured in one of three ways:
+
+ - Inline policy in an annotation on the ServiceAccount
+ - Inline policy in a ConfigMap referenced by an annotation on the ServiceAccount
+ - Roles containing rules with the `apiGroup` "vault.hashicorp.com" and their associated RoleBindings.
+
+Complete examples can be found in the [deploy/samples](deploy/samples) directory.
+For a full list of the annotations used with their descriptions, see the [annotations.go](internal/api/annotations.go) file.
+
+Below are the command-line options for the controller:
+
+```
+-auth-mount string
+    The auth mount for the kubernetes auth method. (default "kubernetes")
+-exclude-namespaces string
+    The namespaces to exclude from watching. If empty, no namespaces are excluded.
+-health-probe-bind-address string
+    The address the probe endpoint binds to. (default ":8081")
+-include-system-namespaces
+    Include system namespaces in the watched namespaces.
+-kubeconfig string
+    Paths to a kubeconfig. Only required if out-of-cluster.
+-leader-elect
+    Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.
+-metrics-bind-address string
+    The address the metric endpoint binds to. (default ":8080")
+-namespaces string
+    The namespaces to watch for roles. If empty, all namespaces are watched.
+-use-finalizers
+    Ensure finalizers on resources to attempt to clean up on deletion.
+-zap-devel
+    Development Mode defaults(encoder=consoleEncoder,logLevel=Debug,stackTraceLevel=Warn). Production Mode defaults(encoder=jsonEncoder,logLevel=Info,stackTraceLevel=Error) (default true)
+-zap-encoder value
+    Zap log encoding (one of 'json' or 'console')
+-zap-log-level value
+    Zap Level to configure the verbosity of logging. Can be one of 'debug', 'info', 'error', or any integer value > 0 which corresponds to custom debug levels of increasing verbosity
+-zap-stacktrace-level value
+    Zap Level at and above which stacktraces are captured (one of 'info', 'error', 'panic').
+-zap-time-encoding value
+    Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano'). Defaults to 'epoch'.
 ```

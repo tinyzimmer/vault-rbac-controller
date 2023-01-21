@@ -12,12 +12,16 @@ spec:
         # Add additional injector configurations here
         ## See the documentation for all the available configurations of the injector:
         ## https://developer.hashicorp.com/vault/docs/platform/k8s/injector/annotations
+        ## Example if Vault is using a custom certificate
+        # vault.hashicorp.com/tls-secret: vault-tls-ca
+        # vault.hashicorp.com/ca-cert: /vault/tls/ca.crt
     spec:
       # Change arguments to the controller
       containers:
       - name: controller
         args: 
         ## Place finalizers on resources to attempt Vault cleanup on deletion
+        - --leader-elect
         # Comment this out if you don't want the controller to attempt to cleanup vault policies
         - --use-finalizers
         ## Specify a custom mount for the Kubernetes auth method
@@ -36,3 +40,14 @@ spec:
         #   limits:
         #     cpu: 200m
         #     memory: 128Mi
+        ## If you choose to not use the injected agent cache, configure the Vault client via 
+        ## environment variables and disable the cache in the annotations
+        # env:
+        # - name: VAULT_ADDR
+        #   value: https://vault.example.com
+        # - name: VAULT_TOKEN
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: vault-credentials
+        #       key: vault-token
+        

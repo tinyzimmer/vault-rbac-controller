@@ -9,9 +9,7 @@ spec:
     metadata:
       annotations:
         vault.hashicorp.com/agent-inject: 'true'
-        vault.hashicorp.com/agent-inject-token: 'true'
         vault.hashicorp.com/agent-cache-enable: "true"
-        vault.hashicorp.com/role: vault-rbac-controller
     spec:
       serviceAccountName: controller
       securityContext:

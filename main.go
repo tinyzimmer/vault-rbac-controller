@@ -81,7 +81,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "87065891.vault.hashicorp.com",
+		LeaderElectionID:       "87065891.rbac.vault.hashicorp.com",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to create manager")

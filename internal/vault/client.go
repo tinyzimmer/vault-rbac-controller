@@ -7,24 +7,11 @@
 package vault
 
 import (
-	"os"
-
 	"github.com/hashicorp/vault/api"
 )
 
 var NewClient = newClientFromEnv
 
-const defaultVaultTokenPath = "/vault/secrets/token"
-
 func newClientFromEnv() (*api.Client, error) {
-	client, err := api.NewClient(api.DefaultConfig())
-	if err != nil {
-		return nil, err
-	}
-	token, err := os.ReadFile(defaultVaultTokenPath)
-	if err != nil {
-		return nil, err
-	}
-	client.SetToken(string(token))
-	return client, nil
+	return api.NewClient(api.DefaultConfig())
 }

@@ -7,6 +7,7 @@
 package vault
 
 import (
+	"os"
 	"testing"
 
 	testingi "github.com/mitchellh/go-testing-interface"
@@ -33,13 +34,16 @@ func TestVault(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	cluster = setupTestVault(GinkgoT())
-	NewClient = func() (*api.Client, error) {
-		return cluster.Cores[0].Client, nil
-	}
+	os.Setenv("VAULT_ADDR", cluster.Cores[0].Client.Address())
+	os.Setenv("VAULT_TOKEN", cluster.RootToken)
+	os.Setenv("VAULT_SKIP_VERIFY", "true")
 })
 
 var _ = AfterSuite(func() {
 	cluster.Cleanup()
+	os.Unsetenv("VAULT_ADDR")
+	os.Unsetenv("VAULT_TOKEN")
+	os.Unsetenv("VAULT_SKIP_VERIFY")
 })
 
 func setupTestVault(t testingi.T) *vault.TestCluster {

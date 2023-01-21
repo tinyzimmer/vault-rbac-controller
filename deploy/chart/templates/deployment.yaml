@@ -13,7 +13,6 @@ spec:
     metadata:
       annotations:
         vault.hashicorp.com/agent-inject: 'true'
-        vault.hashicorp.com/agent-inject-token: 'true'
         vault.hashicorp.com/agent-cache-enable: "true"
         vault.hashicorp.com/role: {{ include "chart.vaultAuthRole" . }}
         {{- if .Values.vault.tlsSkipVerify }}
@@ -54,6 +53,9 @@ spec:
           {{- end }}
           {{- if .Values.controller.useFinalizers }}
           - --use-finalizers
+          {{- end }}
+          {{- if .Values.controller.enableLeaderElection }}
+          - --leader-elect
           {{- end }}
           {{- with .Values.additionalArgs }}
             {{- toYaml . | nindent 12 }}

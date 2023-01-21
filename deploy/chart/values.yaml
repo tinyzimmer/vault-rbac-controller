@@ -45,6 +45,7 @@ tolerations: []
 affinity: {}
 
 controller:
+  enableLeaderElection: true
   authMount: "kubernetes"
   namespaces: []
   excludedNamespaces: []

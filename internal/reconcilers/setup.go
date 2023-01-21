@@ -94,17 +94,17 @@ func checkObject(obj client.Object, namespaces []string, excludeNamespaces []str
 	if !includeKubeSystem && isSystemNamespace(ns) {
 		return false
 	}
-	return (len(namespaces) == 0 || containsString(namespaces, ns)) &&
-		!containsString(excludeNamespaces, ns)
+	return (len(namespaces) == 0 || contains(namespaces, ns)) &&
+		!contains(excludeNamespaces, ns)
 }
 
 func isSystemNamespace(ns string) bool {
 	return ns == "kube-system" || ns == "kube-public" || ns == "kube-node-lease"
 }
 
-func containsString(ss []string, s string) bool {
-	for _, v := range ss {
-		if v == s {
+func contains[T comparable](s []T, e T) bool {
+	for _, a := range s {
+		if a == e {
 			return true
 		}
 	}

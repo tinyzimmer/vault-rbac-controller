@@ -1,0 +1,29 @@
+global:
+  tlsDisable: false
+server:
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+        tls_cert_file = "/vault/userconfig/vault-tls/tls.crt"
+        tls_key_file = "/vault/userconfig/vault-tls/tls.key"
+      }
+
+      storage "file" {
+        path = "/vault/data"
+      }
+  extraVolumes:
+    - type: secret
+      name: vault-tls
+  extraEnvironmentVars:
+    VAULT_CACERT: /vault/userconfig/vault-tls/ca.crt
+  readinessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+  livenessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true"
