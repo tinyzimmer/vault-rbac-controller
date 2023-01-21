@@ -32,6 +32,8 @@ dist:
 		-osarch="$(PLATFORMS)" \
 		-output="dist/vault-rbac-controller_{{.OS}}_{{.Arch}}" .
 	upx --best --lzma dist/*
+	# Rename the windows binary
+	mv dist/vault-rbac-controller_windows_amd64.exe dist/vault-rbac-controller_windows_amd64
 
 test: setup-envtest
 	go install github.com/onsi/ginkgo/v2/ginkgo@latest

@@ -52,7 +52,7 @@ jobs:
       REPO: ghcr.io
       OWNER: tinyzimmer
       PACKAGE_NAME: vault-rbac-controller
-      PLATFORMS: linux/amd64,linux/arm64,linux/arm,darwin/amd64,darwin/arm64,windows/amd64
+      BUILD_PLATFORMS: linux/amd64,linux/arm64,linux/arm,darwin/amd64,darwin/arm64,windows/amd64
     steps:
 
     - name: Checkout Code
@@ -107,7 +107,7 @@ jobs:
          push: true
          context: .
          tags: ${{ steps.tags.outputs.TAGS }}
-         platforms: ${{ env.PLATFORMS }}
+         platforms: ${{ env.BUILD_PLATFORMS }}
 
     # - name: Delete untagged images
     #   uses: actions/github-script@v6
