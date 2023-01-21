@@ -26,7 +26,6 @@ dist:
 	mkdir -p dist/
 	CGO_ENABLED=0 gox \
 		-rebuild \
-		-parallel 3 \
 		-tags netgo \
 		-ldflags "-s -w" \
 		-osarch="$(PLATFORMS)" \
