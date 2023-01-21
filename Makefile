@@ -12,20 +12,24 @@ else ifeq ($(uname_m),armv7l)
 else
 	ARCH ?= $(uname_m)
 endif
+OS ?= linux
 build:
-	CGO_ENABLED=0 GOARCH=$(ARCH) go build -o dist/vault-rbac-controller_linux_$(ARCH) .
-	docker buildx build --load --platform linux/$(ARCH) -t $(IMG) .
+	CGO_ENABLED=0 GOARCH=$(ARCH) GOOS=$(OS) \
+		go build -o dist/vault-rbac-controller_$(OS)_$(ARCH) .
+	docker buildx build --load --platform $(OS)/$(ARCH) -t $(IMG) .
 
 .PHONY: dist
+PLATFORMS ?= linux/amd64 linux/arm64 linux/arm darwin/amd64 darwin/arm64 windows/amd64
 dist:
 	rm -rf dist/
 	go install github.com/mitchellh/gox@latest
 	mkdir -p dist/
 	CGO_ENABLED=0 gox \
 		-rebuild \
+		-parallel 3 \
 		-tags netgo \
 		-ldflags "-s -w" \
-		-osarch="linux/amd64 linux/arm64 linux/arm" \
+		-osarch="$(PLATFORMS)" \
 		-output="dist/vault-rbac-controller_{{.OS}}_{{.Arch}}" .
 	upx --best --lzma dist/*
 
