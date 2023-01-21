@@ -109,20 +109,20 @@ jobs:
          tags: ${{ steps.tags.outputs.TAGS }}
          platforms: ${{ env.PLATFORMS }}
 
-    - name: Delete untagged images
-      uses: actions/github-script@v6
-      env:
-        PER_PAGE: 100
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const response = await github.request("GET /user/packages/container/${{ env.PACKAGE_NAME }}/versions",
-            { per_page: ${{ env.PER_PAGE }} }
-          );
-          for(version of response.data) {
-              if (version.metadata.container.tags.length == 0) {
-                  console.log("delete " + version.id)
-                  const deleteResponse = await github.request("DELETE /user/packages/container/${{ env.PACKAGE_NAME }}/versions/" + version.id, { });
-                  console.log("status " + deleteResponse.status)
-              }
-          }
+    # - name: Delete untagged images
+    #   uses: actions/github-script@v6
+    #   env:
+    #     PER_PAGE: 100
+    #   with:
+    #     github-token: ${{ secrets.GITHUB_TOKEN }}
+    #     script: |
+    #       const response = await github.request("GET /user/packages/container/${{ env.PACKAGE_NAME }}/versions",
+    #         { per_page: ${{ env.PER_PAGE }} }
+    #       );
+    #       for(version of response.data) {
+    #           if (version.metadata.container.tags.length == 0) {
+    #               console.log("delete " + version.id)
+    #               const deleteResponse = await github.request("DELETE /user/packages/container/${{ env.PACKAGE_NAME }}/versions/" + version.id, { });
+    #               console.log("status " + deleteResponse.status)
+    #           }
+    #       }
