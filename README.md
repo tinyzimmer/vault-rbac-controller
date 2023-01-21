@@ -4,6 +4,16 @@ A controller for managing application access to Vault secrets via the Kubernetes
 
 ## Quickstart
 
+If you don't have access to a Kubernetes cluster, you can create one easily locally with [kind](https://kind.sigs.k8s.io/), [k3d](https://k3d.io/), or your preferred tool.
+
+```bash
+# Using kind
+kind create cluster
+
+# Using k3d
+k3d cluster create
+```
+
 ### Installing and Configuring Vault
 
 The controller is intended to be used with the Kubernetes auth method and the [Agent Sidecar Injector](https://developer.hashicorp.com/vault/docs/platform/k8s/injector) that
