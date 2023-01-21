@@ -30,7 +30,7 @@ helm repo update
 helm install \
     --create-namespace \
     --namespace vault \
-    --set server.extraEnvironmentVars.VAULT_CLI_NO_COLOR="1" \
+    --set server.standalone.enabled=true \
     --set server.readinessProbe.enabled=false \
     --set server.livenessProbe.enabled=false \
     vault hashicorp/vault
