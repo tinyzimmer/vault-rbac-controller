@@ -114,6 +114,7 @@ var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	err := env.Stop()
 	Expect(err).NotTo(HaveOccurred())
+	vaultCluster.Cleanup()
 })
 
 func VaultRole(ctx context.Context, path string) (*vaultapi.Secret, error) {
