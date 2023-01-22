@@ -55,7 +55,3 @@ spec:
         - /bin/sh
         - -c
         - sleep infinity
-        resources:
-          limits:
-            memory: "64Mi"
-            cpu: "100m"
