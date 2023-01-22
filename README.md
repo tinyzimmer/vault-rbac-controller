@@ -138,3 +138,32 @@ Below are the command-line options for the controller:
 -zap-time-encoding value
     Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano'). Defaults to 'epoch'.
 ```
+
+## Development
+
+For local development you will need `go` and `docker` (or your preferred image building tool).
+The defaults in the `Makefile` assume a Linux target and your local architecture, but these can be overriden with the `OS` and `ARCH` variables.
+
+To build the image:
+
+```bash
+make
+# OR
+make build
+```
+
+To run the tests:
+
+```bash
+make test
+```
+
+The tests use the controller-runtime `envtest` package. 
+The `Makefile` will attempt to install the required dependencies for you.
+
+The `Makefile` also contains helpers for spinning up and deploying to local clusters.
+They resemble the quickstart in this README.
+
+## Contributing
+
+Issues and PRs are welcome. Templates and more information will come later.
