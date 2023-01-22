@@ -20,9 +20,8 @@ spec:
       containers:
       - name: controller
         args: 
-        ## Place finalizers on resources to attempt Vault cleanup on deletion
         - --leader-elect
-        # Comment this out if you don't want the controller to attempt to cleanup vault policies
+        ## Place finalizers on resources to attempt Vault cleanup on deletion
         - --use-finalizers
         ## Specify a custom mount for the Kubernetes auth method
         - --auth-mount=kubernetes
