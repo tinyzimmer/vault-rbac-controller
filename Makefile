@@ -14,6 +14,7 @@ else
 endif
 OS ?= linux
 build:
+	go mod download -x
 	CGO_ENABLED=0 GOARCH=$(ARCH) GOOS=$(OS) \
 		go build -o dist/vault-rbac-controller_$(OS)_$(ARCH) .
 	docker buildx build --load --platform $(OS)/$(ARCH) -t $(IMG) .
