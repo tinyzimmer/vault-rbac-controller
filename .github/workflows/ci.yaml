@@ -5,82 +5,42 @@ on:
     tags: [v*]
   pull_request:
     branches: [main]
+
 jobs:
 
   unit-tests:
 
     name: Unit Tests
     runs-on: ubuntu-latest
-    if: github.actor != 'dependabot'
+    permissions:
+      contents: read
     steps:
 
-    - name: Checkout Code
-      uses: actions/checkout@v3
+    - name: Setup Workflow
+      uses: ./.github/actions/setup
 
-    - name: Setup Go 1.19
-      uses: actions/setup-go@v3
-      with:
-        go-version: '^1.19'
-
-    - name: Cache Go Modules
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go
-
-    - name: Download Go Modules
+    - name: Run Tests
       shell: bash
-      run: go mod download -x
-
-    - name: Run Static Analysis
-      shell: bash
-      run: make lint
-
-    - name: Run Unit Tests
-      shell: bash
-      run: make test
+      run: make lint test
 
   build:
 
-    name: Build and Publish
+    name: Build and Publish Artifacts
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot' && github.event != 'pull_request'
     needs: unit-tests
     permissions:
       contents: 'read'
       id-token: 'write'
+      packages: write
     env:
-      REPO: ghcr.io
-      OWNER: tinyzimmer
-      PACKAGE_NAME: vault-rbac-controller
+      REGISTRY: ghcr.io
+      REPO: tinyzimmer/vault-rbac-controller
       BUILD_PLATFORMS: linux/amd64,linux/arm64,linux/arm,darwin/amd64,darwin/arm64,windows/amd64
     steps:
 
-    - name: Checkout Code
-      uses: actions/checkout@v3
-
-    - name: Setup Go 1.19
-      uses: actions/setup-go@v3
-      with:
-        go-version: '^1.19'
-
-    - name: Cache Go Modules
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go
-
-    - name: Download Go Modules
-      shell: bash
-      run: go mod download -x
+    - name: Setup Workflow
+      uses: ./.github/actions/setup
 
     - name: Build Release Binaries
       shell: bash
@@ -91,9 +51,9 @@ jobs:
       id: tags
       run: |
         if [[ "${{ github.ref_name }}" == "main" ]] ; then
-          echo TAGS=${REPO}/${OWNER}/${PACKAGE_NAME}:latest >> ${GITHUB_OUTPUT}
+          echo TAGS=${REGISTRY}/${REPO}:latest >> ${GITHUB_OUTPUT}
         else
-          echo TAGS=${REPO}/${OWNER}/${PACKAGE_NAME}:latest,${REPO}/${OWNER}/${PACKAGE_NAME}:${{ github.ref_name }} >> ${GITHUB_OUTPUT}
+          echo TAGS=${REGISTRY}/${REPO}:latest,${REGISTRY}/${REPO}:${{ github.ref_name }} >> ${GITHUB_OUTPUT}
         fi
 
     - name: Setup cosign
@@ -105,7 +65,7 @@ jobs:
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v2
       with:
-        registry: ${{ env.REPO }}
+        registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -122,4 +82,4 @@ jobs:
       shell: bash
       env:
         COSIGN_EXPERIMENTAL: '1'
-      run: cosign sign --recursive ${REPO}/${OWNER}/${PACKAGE_NAME}@${{ steps.build.outputs.digest }}
+      run: cosign sign --recursive ${REGISTRY}/${REPO}@${{ steps.build.outputs.digest }}
