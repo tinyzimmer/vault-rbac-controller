@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
     tags: [v*]
+  pull_request:
+    branches: [main]
 jobs:
 
   unit-tests:
@@ -46,8 +48,11 @@ jobs:
 
     name: Build and Publish
     runs-on: ubuntu-latest
-    if: github.actor != 'dependabot'
+    if: github.actor != 'dependabot' && github.event != 'pull_request'
     needs: unit-tests
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     env:
       REPO: ghcr.io
       OWNER: tinyzimmer
@@ -91,6 +96,9 @@ jobs:
           echo TAGS=${REPO}/${OWNER}/${PACKAGE_NAME}:latest,${REPO}/${OWNER}/${PACKAGE_NAME}:${{ github.ref_name }} >> ${GITHUB_OUTPUT}
         fi
 
+    - name: Setup cosign
+      uses: sigstore/cosign-installer@main
+
     - name: Setup Buildx
       uses: docker/setup-buildx-action@v2
 
@@ -103,26 +111,15 @@ jobs:
 
     -  name: Build and push
        uses: docker/build-push-action@v3
+       id: build
        with:
          push: true
          context: .
          tags: ${{ steps.tags.outputs.TAGS }}
          platforms: ${{ env.BUILD_PLATFORMS }}
 
-    # - name: Delete untagged images
-    #   uses: actions/github-script@v6
-    #   env:
-    #     PER_PAGE: 100
-    #   with:
-    #     github-token: ${{ secrets.GITHUB_TOKEN }}
-    #     script: |
-    #       const response = await github.request("GET /user/packages/container/${{ env.PACKAGE_NAME }}/versions",
-    #         { per_page: ${{ env.PER_PAGE }} }
-    #       );
-    #       for(version of response.data) {
-    #           if (version.metadata.container.tags.length == 0) {
-    #               console.log("delete " + version.id)
-    #               const deleteResponse = await github.request("DELETE /user/packages/container/${{ env.PACKAGE_NAME }}/versions/" + version.id, { });
-    #               console.log("status " + deleteResponse.status)
-    #           }
-    #       }
+    - name: Sign Container Images
+      shell: bash
+      env:
+        COSIGN_EXPERIMENTAL: '1'
+      run: cosign sign --recursive ${REPO}/${OWNER}/${PACKAGE_NAME}@${{ steps.build.outputs.digest }}
