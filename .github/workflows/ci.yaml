@@ -16,6 +16,9 @@ jobs:
       contents: read
     steps:
 
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
     - name: Setup Workflow
       uses: ./.github/actions/setup
 
@@ -38,6 +41,9 @@ jobs:
       REPO: tinyzimmer/vault-rbac-controller
       BUILD_PLATFORMS: linux/amd64,linux/arm64,linux/arm,darwin/amd64,darwin/arm64,windows/amd64
     steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
     - name: Setup Workflow
       uses: ./.github/actions/setup
