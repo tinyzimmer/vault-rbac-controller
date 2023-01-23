@@ -2,6 +2,8 @@
 
 A controller for managing application access to Vault secrets via the Kubernetes RBAC system.
 
+Policies and connection roles are automatically created in Vault according to annotations on ServiceAccounts, RoleBindings, and/or Roles.
+
 ## Quickstart
 
 If you don't have access to a Kubernetes cluster, you can create one easily locally with [kind](https://kind.sigs.k8s.io/), [k3d](https://k3d.io/), or your preferred tool.
