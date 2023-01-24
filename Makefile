@@ -13,7 +13,30 @@ else
 	ARCH ?= $(uname_m)
 endif
 OS ?= linux
-build:
+
+
+##@ General
+
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk commands is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
+
+default: build
+
+.PHONY: help
+help: ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+##@ Build
+
+build: ## Build the vault-rbac-controller image for the current architecture. This is the default target.
 	go mod download -x
 	CGO_ENABLED=0 GOARCH=$(ARCH) GOOS=$(OS) \
 		go build -o dist/vault-rbac-controller_$(OS)_$(ARCH) .
@@ -21,7 +44,7 @@ build:
 
 .PHONY: dist
 PLATFORMS ?= linux/amd64 linux/arm64 linux/arm
-dist:
+dist: ## Build the vault-rbac-controller release images for all supported architectures
 	rm -rf dist/
 	go install github.com/mitchellh/gox@latest
 	mkdir -p dist/
@@ -33,7 +56,9 @@ dist:
 		-output="dist/vault-rbac-controller_{{.OS}}_{{.Arch}}" .
 	upx --best --lzma dist/*
 
-test: setup-envtest
+##@ Development
+
+test: setup-envtest ## Run the unit tests
 	go install github.com/onsi/ginkgo/v2/ginkgo@latest
 	$(shell setup-envtest use -p env) ; \
 		ginkgo run -r -v \
@@ -45,22 +70,22 @@ test: setup-envtest
 	go tool cover -func cover.out
 
 GOLANGCI_LINT_VERSION = v1.50.1
-lint:
+lint: ## Run the linter
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	golangci-lint run -v --timeout 300s
 
-setup-envtest:
+setup-envtest: ## Download the envtest binaries
 	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	setup-envtest use
 
-## Local development helpers
+##@ Local Cluster Testing
 
 CLUSTER_NAME ?= vault-rbac-controller
 KUBECONTEXT  ?= k3d-$(CLUSTER_NAME)
 
-test-cluster: create-cluster install-vault init-vault configure-vault
+test-cluster: create-cluster install-vault init-vault configure-vault ## Create a local k3d cluster and install/configure vault
 
-test-cluster-tls: create-cluster install-certmanager
+test-cluster-tls: create-cluster install-certmanager ## Create a local k3d cluster and install/configure vault with self-signed TLS
 	$(MAKE) install-vault VAULT_VALUES=deploy/test_vault_values_tls.yaml
 	$(MAKE) init-vault configure-vault
 	$(KUBECTL) -n vault get secret vault-tls -o json \
@@ -68,17 +93,17 @@ test-cluster-tls: create-cluster install-certmanager
 		| base64 -d \
 		| $(KUBECTL) create secret generic vault-tls-ca --from-file=ca.crt=/dev/stdin
 
-create-cluster:
+create-cluster: ## Create a local k3d cluster
 	k3d cluster create $(CLUSTER_NAME)
 
-destroy-cluster:
+destroy-cluster: ## Destroy the local k3d cluster
 	k3d cluster delete $(CLUSTER_NAME)
 
 HELM    := helm --kube-context $(KUBECONTEXT)
 KUBECTL := kubectl --context $(KUBECONTEXT)
 
 VAULT_VALUES ?= deploy/test_vault_values.yaml
-install-vault:
+install-vault: ## Install vault into the local k3d cluster
 	$(HELM) repo add hashicorp https://helm.releases.hashicorp.com
 	$(HELM) repo update
 	$(HELM) upgrade --install --wait \
@@ -92,7 +117,7 @@ install-vault:
 		--timeout=300s \
 		vault-0
 
-install-certmanager:
+install-certmanager: ## Install cert-manager into the local k3d cluster
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) upgrade --install --wait \
@@ -149,14 +174,14 @@ export VAULT_TLS
 SVCACCT ?= vault-rbac-controller
 VAULT   := $(KUBECTL) exec -it --namespace vault vault-0 -- vault
 
-init-vault:
+init-vault: ## Initialize vault
 	$(VAULT) operator init -key-shares=1 -key-threshold=1 -format=json > keys.json
 	$(VAULT) operator unseal "$$(jq -r ".unseal_keys_b64[]" keys.json)"
 	$(VAULT) login $$(jq -r ".root_token" keys.json)
 	$(VAULT) secrets enable -path=secret kv-v2
 	$(VAULT) auth enable kubernetes
 
-configure-vault:
+configure-vault: ## Configure vault
 	cat deploy/vault_policy.hcl | $(VAULT) policy write $(SVCACCT) -
 	$(KUBECTL) exec -it --namespace vault vault-0 -- \
 		/bin/sh -c \
@@ -169,14 +194,14 @@ configure-vault:
 		ttl=1h
 	$(VAULT) kv put secret/example api_key=$(shell uuidgen)
 
-load-image:
+load-image: ## Load the controller image into the local k3d cluster
 	k3d image import $(IMG) --cluster $(CLUSTER_NAME)
 
 RELEASE_NAME ?= rbac-controller
-deploy-controller: load-image
+deploy-controller: load-image ## Deploy the controller into the local k3d cluster
 	kubectl kustomize deploy/kustomize \
 		| $(KUBECTL) apply -f -
 
-undeploy-controller:
+undeploy-controller: ## Undeploy the controller from the local k3d cluster
 	kubectl kustomize deploy/kustomize \
 		| $(KUBECTL) delete -f -

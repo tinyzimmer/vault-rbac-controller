@@ -164,7 +164,8 @@ The tests use the controller-runtime `envtest` package.
 The `Makefile` will attempt to install the required dependencies for you.
 
 The `Makefile` also contains helpers for spinning up and deploying to local clusters.
-They resemble the quickstart in this README.
+They resemble the quickstart in this README. 
+You can run `make help` to get more information on the available options.
 
 ## Contributing
 
