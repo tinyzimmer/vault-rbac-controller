@@ -90,6 +90,5 @@ jobs:
       shell: bash
       env:
         COSIGN_EXPERIMENTAL: '1'
-        PACKAGE: ${{ steps.tags.outputs.SIGN }}
-        DIGEST: ${{ steps.build.outputs.digest }}
-      run: set -x ; cosign sign --recursive ${PACKAGE}@${DIGEST}
+        PACKAGE: "${{ steps.tags.outputs.SIGN }}@${{ steps.build.outputs.digest }}"
+      run: set -x ; cosign sign --recursive ${PACKAGE}
