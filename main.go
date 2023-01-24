@@ -29,6 +29,9 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+
+	version string
+	commit  string
 )
 
 func init() {
@@ -65,6 +68,8 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	setupLog.Info("starting vault-rbac-controller", "version", version, "commit", commit)
 
 	ctrlNamespaces := strings.Split(namespaces, ",")
 	if len(ctrlNamespaces) == 1 && ctrlNamespaces[0] == "" {

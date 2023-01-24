@@ -20,7 +20,7 @@ build:
 	docker buildx build --load --platform $(OS)/$(ARCH) -t $(IMG) .
 
 .PHONY: dist
-PLATFORMS ?= linux/amd64 linux/arm64 linux/arm darwin/amd64 darwin/arm64
+PLATFORMS ?= linux/amd64 linux/arm64 linux/arm
 dist:
 	rm -rf dist/
 	go install github.com/mitchellh/gox@latest
@@ -28,12 +28,10 @@ dist:
 	CGO_ENABLED=0 gox \
 		-rebuild \
 		-tags netgo \
-		-ldflags "-s -w" \
+		-ldflags "-s -w -X main.version=$(shell git describe --tags) -X main.commit=$(shell git rev-parse HEAD)" \
 		-osarch="$(PLATFORMS)" \
 		-output="dist/vault-rbac-controller_{{.OS}}_{{.Arch}}" .
 	upx --best --lzma dist/*
-	# Rename the windows binary
-	mv dist/vault-rbac-controller_windows_amd64.exe dist/vault-rbac-controller_windows_amd64
 
 test: setup-envtest
 	go install github.com/onsi/ginkgo/v2/ginkgo@latest
