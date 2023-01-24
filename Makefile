@@ -20,7 +20,7 @@ build:
 	docker buildx build --load --platform $(OS)/$(ARCH) -t $(IMG) .
 
 .PHONY: dist
-PLATFORMS ?= linux/amd64 linux/arm64 linux/arm darwin/amd64 darwin/arm64 windows/amd64
+PLATFORMS ?= linux/amd64 linux/arm64 linux/arm darwin/amd64 darwin/arm64
 dist:
 	rm -rf dist/
 	go install github.com/mitchellh/gox@latest

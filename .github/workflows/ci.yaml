@@ -33,13 +33,13 @@ jobs:
     if: github.actor != 'dependabot' && github.event != 'pull_request'
     needs: unit-tests
     permissions:
-      contents: 'read'
-      id-token: 'write'
+      contents: read
+      id-token: write
       packages: write
     env:
       REGISTRY: ghcr.io
       REPO: tinyzimmer/vault-rbac-controller
-      BUILD_PLATFORMS: linux/amd64,linux/arm64,linux/arm,darwin/amd64,darwin/arm64,windows/amd64
+      BUILD_PLATFORMS: linux/amd64,linux/arm64,linux/arm,darwin/amd64,darwin/arm64
     steps:
 
     - name: Checkout Code
@@ -58,8 +58,10 @@ jobs:
       run: |
         if [[ "${{ github.ref_name }}" == "main" ]] ; then
           echo TAGS=${REGISTRY}/${REPO}:latest >> ${GITHUB_OUTPUT}
+          echo SIGN=${REGISTRY}/${REPO}:latest >> ${GITHUB_OUTPUT}
         else
           echo TAGS=${REGISTRY}/${REPO}:latest,${REGISTRY}/${REPO}:${{ github.ref_name }} >> ${GITHUB_OUTPUT}
+          echo SIGN=${REGISTRY}/${REPO}:${{ github.ref_name }} >> ${GITHUB_OUTPUT}
         fi
 
     - name: Setup cosign
@@ -88,4 +90,6 @@ jobs:
       shell: bash
       env:
         COSIGN_EXPERIMENTAL: '1'
-      run: cosign sign --recursive ${REGISTRY}/${REPO}@${{ steps.build.outputs.digest }}
+        PACKAGE: ${{ steps.tags.outputs.SIGN }}
+        DIGEST: ${{ steps.build.outputs.digest }}
+      run: set -x ; cosign sign --recursive ${PACKAGE}@${DIGEST}
