@@ -3,6 +3,7 @@
 A controller for managing application access to Vault secrets via the Kubernetes RBAC system.
 
 Policies and connection roles are automatically created in Vault according to annotations on ServiceAccounts, RoleBindings, and/or Roles.
+Examples can be found in the [`deploy/samples`](deploy/samples) directory.
 
 ## Quickstart
 
