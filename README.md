@@ -70,7 +70,7 @@ cat deploy/vault_policy.hcl | kubectl exec -it --namespace vault vault-0 -- vaul
 # Bind the controller's (soon to be) service account to the policy
 kubectl exec -it --namespace vault vault-0 -- vault write auth/kubernetes/role/vault-rbac-controller \
 		bound_service_account_names=vault-rbac-controller \
-		bound_service_account_namespaces=default \
+		bound_service_account_namespaces=vault \
 		policies=vault-rbac-controller
 ```
 
