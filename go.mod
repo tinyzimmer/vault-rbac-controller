@@ -1,6 +1,6 @@
 module github.com/tinyzimmer/vault-rbac-controller
 
-go 1.19
+go 1.20
 
 require (
 	github.com/hashicorp/go-hclog v1.3.1

@@ -69,7 +69,7 @@ test: setup-envtest ## Run the unit tests
 			--coverprofile cover.out
 	go tool cover -func cover.out
 
-GOLANGCI_LINT_VERSION = v1.50.1
+GOLANGCI_LINT_VERSION = v1.51.2
 lint: ## Run the linter
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	golangci-lint run -v --timeout 600s

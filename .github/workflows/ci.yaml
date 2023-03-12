@@ -22,9 +22,15 @@ jobs:
     - name: Setup Workflow
       uses: ./.github/actions/setup
 
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: v1.51.2
+        args: --timeout=600s -v
+
     - name: Run Tests
       shell: bash
-      run: make lint test
+      run: make test
 
   build:
 
