@@ -32,9 +32,9 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-codeql-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go
+          ${{ runner.os }}-codeql
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
