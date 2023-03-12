@@ -99,4 +99,4 @@ jobs:
       env:
         COSIGN_EXPERIMENTAL: '1'
         PACKAGE: "${{ steps.tags.outputs.SIGN }}@${{ steps.build.outputs.digest }}"
-      run: set -x ; cosign sign --force --yes --recursive ${PACKAGE}
+      run: set -x ; cosign sign --yes --recursive ${PACKAGE}
