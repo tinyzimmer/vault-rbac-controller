@@ -22,7 +22,7 @@ jobs:
     - name: Setup Workflow
       uses: ./.github/actions/setup
 
-    - name: golangci-lint
+    - name: Run Linting
       uses: golangci/golangci-lint-action@v3
       with:
         version: v1.51.2

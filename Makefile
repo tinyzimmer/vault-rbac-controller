@@ -58,8 +58,9 @@ dist: ## Build the vault-rbac-controller release images for all supported archit
 
 ##@ Development
 
+GINKGO_VERSION ?= v2.9.0
 test: setup-envtest ## Run the unit tests
-	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+	go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 	$(shell setup-envtest use -p env) ; \
 		ginkgo run -r -v \
 			--race \
