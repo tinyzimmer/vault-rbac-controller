@@ -35,7 +35,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	hashivault "github.com/hashicorp/vault/vault"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/vault"
+	"github.com/edgeworx/vault-rbac-controller/internal/vault"
 )
 
 var (

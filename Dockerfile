@@ -1,6 +1,6 @@
 FROM scratch
 
-LABEL org.opencontainers.image.source=https://github.com/tinyzimmer/vault-rbac-controller
+LABEL org.opencontainers.image.source=https://github.com/edgeworx/vault-rbac-controller
 LABEL org.opencontainers.image.description="Vault RBAC Controller"
 LABEL org.opencontainers.image.licenses=MPL2
 

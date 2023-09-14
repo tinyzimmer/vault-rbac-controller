@@ -15,7 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/api"
+	"github.com/edgeworx/vault-rbac-controller/internal/api"
 )
 
 var _ = Describe("Vault Policies", func() {

@@ -17,9 +17,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/api"
-	"github.com/tinyzimmer/vault-rbac-controller/internal/util"
-	"github.com/tinyzimmer/vault-rbac-controller/internal/vault"
+	"github.com/edgeworx/vault-rbac-controller/internal/api"
+	"github.com/edgeworx/vault-rbac-controller/internal/util"
+	"github.com/edgeworx/vault-rbac-controller/internal/vault"
 )
 
 type ServiceAccountReconciler struct {

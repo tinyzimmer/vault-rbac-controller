@@ -1,4 +1,4 @@
-module github.com/tinyzimmer/vault-rbac-controller
+module github.com/edgeworx/vault-rbac-controller
 
 go 1.20
 

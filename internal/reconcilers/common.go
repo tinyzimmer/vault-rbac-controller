@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/api"
+	"github.com/edgeworx/vault-rbac-controller/internal/api"
 )
 
 func addFinalizer(ctx context.Context, cli client.Client, obj client.Object) error {

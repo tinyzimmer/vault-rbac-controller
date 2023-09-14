@@ -22,8 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/reconcilers"
-	"github.com/tinyzimmer/vault-rbac-controller/internal/vault"
+	"github.com/edgeworx/vault-rbac-controller/internal/reconcilers"
+	"github.com/edgeworx/vault-rbac-controller/internal/vault"
 )
 
 var (

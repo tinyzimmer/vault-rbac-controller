@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/vault"
+	"github.com/edgeworx/vault-rbac-controller/internal/vault"
 )
 
 // Options are the options for configuring the reconcilers.

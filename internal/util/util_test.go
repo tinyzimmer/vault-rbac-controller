@@ -13,7 +13,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/api"
+	"github.com/edgeworx/vault-rbac-controller/internal/api"
 )
 
 func TestDefaultResourceFormat(t *testing.T) {

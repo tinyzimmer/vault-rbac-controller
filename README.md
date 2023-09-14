@@ -85,7 +85,7 @@ Otherwise, edit the `config_patch.yaml` to suit your needs or create a wrapping 
 To install using `kustomize`:
 
 ```bash
-kubectl kustomize https://github.com/tinyzimmer/vault-rbac-controller/deploy/kustomize \
+kubectl kustomize https://github.com/edgeworx/vault-rbac-controller/deploy/kustomize \
     | kubectl apply -f -
 ```
 

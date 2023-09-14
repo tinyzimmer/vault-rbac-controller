@@ -13,8 +13,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/tinyzimmer/vault-rbac-controller/internal/api"
-	"github.com/tinyzimmer/vault-rbac-controller/internal/util"
+	"github.com/edgeworx/vault-rbac-controller/internal/api"
+	"github.com/edgeworx/vault-rbac-controller/internal/util"
 )
 
 type RoleManager interface {
